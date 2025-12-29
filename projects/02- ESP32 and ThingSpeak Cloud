@@ -1,1 +1,536 @@
+////////////////////////////////////////////////////////////////////// include libraries /////////////////////////////////////////
+//LIBRARIES FOR WIFI
+include "WiFi.h" 
+include "HTTPClient.h" 
+include "NTPClient.h"
+include "WiFiUdp.h" 
+// Librar0ies for dht
+include ”DHT.h”
+// Libraries for SD card
+include ”FS.h”
+include ”SD.h”
+include "SPI.h 
+//DS18B20 libraries
+include "OneWire.h" 
+include "DallasTemperature.h" 
+//libraries for tiny gps ++
+include "TinyGPS++.h" 
+include "SoftwareSerial.h" 
+/////////////////////////////////////////////////////////////////// DEFINING ///////////////////////////////////////////////////////
+static const int RXPin = 3, TXPin = 1;//////// for gps
+static const uint32˙t GPSBaud = 9600 ;
+//////// for gps
+// The TinyGPS++ object TinyGPSPlus gps;
+SoftwareSerial ss(RXPin, TXPin);
+float la;
+float lo;
+// Define CS pin for the SD card module define SD˙CS 5
 
+//DEFINE DHT11
+define DHTPIN 4
+define DHTTYPE DHT11
+DHTdht(DHTPIN, DHTTYPE);
+// Data wire is connected to ESP32 GPIO 12 define ONE˙WIRE˙BUS 12
+// Define NTP Client to get time
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);
+//////////////////////////////////////////////////////////// DEFINING VARIABLES ///////////////////////////////////////////////////////
+const char* ssid = ””;
+const char* password =
+””;
+// Domain Name with full URL Path for HTTP POST Request
+const char* serverName =
+”http://api.thingspeak.com/update”;
+// Service API Key
+String apiKey = ”64JVX987VJECO15F”; #change as per your API
+// THE DEFAULT TIMERIS SETTO10SECONDSFORTESTINGPURPOSES
+// For a final application, check the API call limits per hour/minute to avoid getting blocked/banned
+unsigned long lastTime = 0;
+// Set timer to 10 minutes (600000)
+//unsigned long timerDelay = 600000;
+// Timer set to 10 seconds (10000)
+unsigned long timerDelay = 10000;
+// Temperature Sensor variables
+float temperature;
+float readingID;
+float t;
+// Variables to save date and time
+String formattedDate;
+
+String dayStamp;
+String timeStamp;
+String dataMessage;
+int httpResponseCode;
+//////////////////////////////////////////////////////////// SETTING ///////////////////////////////////////////////////////
+// Setup a oneWire instance to communicate with a OneWire device
+OneWire oneWire(ONE˙WIRE˙BUS);
+// Pass our oneWire reference to Dallas Temperature sensor
+DallasTemperature sensors(oneWire);
+
+void setup()
+/////////////////////////////////////////////////////////
+Serial.begin(115200);
+Serial.begin(9600);
+ss.begin(GPSBaud);
+Serial.println(F(”DHT11 test!”));
+dht.begin();
+// Initialize SD card
+SD.begin(SD˙CS);
+if(!SD.begin(SD˙CS))
+Serial.println(”Card Mount Failed”);
+return;
+uint8˙t cardType = SD.cardType();
+if(cardType == CARD˙NONE)
+Serial.println(”No SD card attached”);
+return;
+Serial.println(”Initializing SD
+card...”);
+if (!SD.begin(SD˙CS))
+Serial.println(”ERROR- SD card
+initialization failed!”);
+return; // init failed
+// If the data.txt file doesn’t exist
+// Create a file on the SD card and write the data labels
+File file = SD.open(”/data.txt”);
+if(!file)
+Serial.println(”File doens’t exist”);
+Serial.println(”Creating file...”);
+writeFile(SD, ”/data.txt”,”Temperature ˚ ”);
+else
+Serial.println(”File already exists”);
+file.close();
+//// Start the DallasTemperature library
+sensors.begin();
+//getReadings();
+//logSDCard();
+// Initialize Serial Monitor
+Serial.print(”Connecting to ”);
+Serial.println(ssid);
+WiFi.begin(ssid, password);
+while (WiFi.status() != WL˙CONNECTED)
+delay(500);
+Serial.print(”.”);
+
+// Print local IP address and start web server
+Serial.println(””);
+Serial.println(”WiFi connected.”);
+Serial.println(”IP address: ”);
+Serial.println(WiFi.localIP());
+// Initialize a NTPClient to get time
+timeClient.begin();
+// Set offset time in seconds to adjust
+for your timezone, for example:
+//GMT +5 = 18000
+timeClient.setTimeOffset(18000);
+Serial.println(”Timer set to 10 seconds
+(timerDelay variable), it will take 10
+seconds before publishing the first
+reading.”);
+// Random seed is a number used to
+initialize a pseudorandom number
+generator
+randomSeed(analogRead(33));
+
+void loop()
+getReadings();//it will take sensors
+reading and also time and date
+//gps();
+asad();
+logSDCard() ;
+//it will take sensors reading ,time and date on sd card
+
+//Send an HTTP POST request every 10 seconds
+if ((millis()- lastTime)   timerDelay)
+//Check WiFi connection status
+if(WiFi.status()== WL˙CONNECTED)
+HTTPClient http;
+// Your Domain name with URL path or IP address with path
+http.begin(serverName);
+// Specify content-type header
+http.addHeader(”Content-Type”,
+”application/x-www-form-urlencoded”);
+// Data to send with HTTP POST
+String httpRequestData = ”api˙key=” + apiKey +
+”field1=” + String(temperature)+ ”field2=” +
+String(t)+ ”field5=” + String(lo)+ ”field4=” +
+String(la); // Send HTTP POST request
+httpResponseCode = http.POST(httpRequestData);
+/* // If you need an HTTP request with a content type: application/json, use the following:
+http.addHeader(”Content-Type”,”application/json”);
+// JSON data to send with HTTP POST
+String httpRequestData = ”¨api˙key¨ :¨ ” +
+apiKey + ”¨ ,¨ field1¨ :¨ ” + String(random(40))
++ ”
+”;
+// Send HTTP POST request
+int httpResponseCode =
+http.POST(httpRequestData);
+*/
+
+Serial.print(”HTTP Response code: ”);
+Serial.println(httpResponseCode);
+// Free resources
+http.end();
+else
+Serial.println(”WiFi Disconnected”);
+lastTime = millis();
+delay(2000);
+
+// Function to get temperature
+void getReadings()
+t = dht.readTemperature();
+// Check if any reads failed and exit early (to try again).
+if ( isnan(t))
+Serial.println(F(”Failed to read from DHT
+sensor!”));
+return;
+sensors.requestTemperatures();
+temperature = sensors.getTempCByIndex(0); //
+Temperature in Celsius
+Serial.print(”Temperature of milk: ”);
+Serial.println(temperature);
+Serial.print(”Temperature of surrounding : ”);
+Serial.println(t);
+while(!timeClient.update())
+timeClient.forceUpdate();
+// The formattedDate comes with the following
+format:
+// 2018-05-28T16:00:13Z
+// We need to extract date and time
+formattedDate = timeClient.getFormattedDate();
+//Serial.println(formattedDate);
+
+// Extract date
+int splitT = formattedDate.indexOf(”T”);
+dayStamp = formattedDate.substring(0, splitT);
+Serial.print(”DATE: ”);
+Serial.println(dayStamp);
+// Extract time
+timeStamp = formattedDate.substring(splitT+1,
+formattedDate.length()-1);
+Serial.print(”HOUR: ”);
+Serial.println(timeStamp);
+// Write the sensor readings on the SD card void logSDCard()
+dataMessage = String(temperature) + ” ”+
+String(t) + ” ”+ timeStamp + ” ”+ dayStamp +”
+”+ String(la) + ” ”+ String(lo) + ” ˚ ”;
+Serial.print(”Save data: ”);
+Serial.println(dataMessage);
+appendFile(SD, ”/data.txt”, dataMessage.c˙str());
+
+// Write to the SD card (DON’T MODIFY THIS FUNCTION)
+void writeFile(fs::FS fs, const char * path, const
+char * message)
+Serial.printf(”Writing file:
+File file = fs.open(path, FILE˙WRITE);
+if(!file)
+Serial.println(”Failed to open file for writing”);
+return;
+if(file.print(message))
+Serial.println(”File written”);
+else
+Serial.println(”Write failed”);
+file.close();
+
+// Append data to the SD card (DON’T MODIFY THIS FUNCTION)
+void appendFile(fs::FS fs, const char * path, const
+char * message)
+Serial.printf(”Appending to file:
+File file = fs.open(path, FILE˙APPEND);
+if(!file)
+Serial.println(”Failed to open file for
+appending”);
+return;
+if(file.print(message))
+Serial.println(”Message appended”);
+else
+Serial.println(”Append failed”);
+file.close();
+
+
+void asad()
+while (ss.available()   0)
+gps.encode(ss.read());
+if (gps.location.isUpdated())
+Serial.print(”Latitude= ”);
+Serial.print(gps.location.lat(), 6);
+la=gps.location.lat();
+Serial.print(” Longitude= ”);
+Serial.println(gps.location.lng(), 6);
+lo=gps.location.lng();
+////////////////////////////////////////////////////////////////////// include libraries /////////////////////////////////////////
+//LIBRARIES FOR WIFI
+include "WiFi.h" 
+include "HTTPClient.h" 
+include "NTPClient.h" 
+include "WiFiUdp.h" 
+// Libraries for dht
+include ”DHT.h”
+// Libraries for SD card
+include ”FS.h”
+include ”SD.h”
+include ¡SPI.h 
+//DS18B20 libraries
+include "OneWire.h" 
+include "DallasTemperature.h"
+
+///////////////////////////// libraries for ble////////////////////////////////////////// include include "BLEDevice.h" 
+include "BLEUtils.h" 
+include "BLEServer.h" 
+/////////////////////////////////////////////////////////////////// DEFINING ///////////////////////////////////////////////////////
+// Define CS pin for the SD card module
+define SD˙CS 5
+//DEFINE DHT11
+define DHTPIN 4
+define DHTTYPE DHT11
+DHTdht(DHTPIN, DHTTYPE);
+// Data wire is connected to ESP32 GPIO 12
+define ONE˙WIRE˙BUS 12
+// Define NTP Client to get time
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);
+// See the following for generating UUIDs:
+// https://www.uuidgenerator.net/
+define SERVICE˙UUID
+”4fafc201-1fb5-459e-8fcc-c5c9c331914b”////////////////
+///for ble
+define CHARACTERISTIC˙UUID
+”beb5483e-36e1-4688-b7f5-ea07361b26a8”////////////////
+
+/////////for ble
+//////////////////////////////////////////////////////////// DEFINING VARIABLES ///////////////////////////////////////////////////////
+const char* ssid = ””;
+const char* password = ””;
+// Domain Name with full URL Path for HTTP POST Request
+const char* serverName =
+”http://api.thingspeak.com/update”;
+// Service API Key
+String apiKey = ”64JVX987VJECO15F”;
+// THE DEFAULT TIMER IS SET TO 10 SECONDS FOR TESTING PURPOSES // For a final
+application, check the API call limits per hour/minute to avoid getting blocked/banned
+unsigned long lastTime = 0;
+// Set timer to 10 minutes (600000)
+//unsigned long timerDelay = 600000;
+// Timer set to 10 seconds (10000)
+unsigned long timerDelay = 10000;
+// Temperature Sensor variables
+float temperature;
+float readingID;
+float t;
+// Variables to save date and time
+String formattedDate;
+String dayStamp;
+String timeStamp;
+String dataMessage;
+String a=””;/////////////////for ble send
+String appended=””;////////for ble send
+
+//////////////////////////////////////////////////////////// SETTING ///////////////////////////////////////////////////////
+
+// Setup a oneWireinstance to communicatewithaOneWiredeviceOneWireoneWire(ONE˙WIRE˙BUS);
+// Pass our oneWire reference to Dallas Temperature sensor DallasTemperature sensors(oneWire);
+//////////////////////////////////////////////////////////////////////////////////
+
+void readFile(fs::FS fs, const char * path)
+Serial.printf(”Reading file:
+File file = fs.open(path);
+if(!file)
+Serial.println(”Failed to open file for
+reading”);
+return;
+Serial.print(”Read from file: ”);
+appended=””;
+while(file.available())
+a=(char)file.read();
+appended.concat(a);
+Serial.print(appended);
+file.close();
+//////////////////////////////////////////////////////////////////////////////////////
+
+void setup()
+/////////////////////////////////////////////////////////
+Serial.begin(115200);
+Serial.println(F(”DHT11 test!”));
+dht.begin();
+// Initialize SD card
+SD.begin(SD˙CS);
+if(!SD.begin(SD˙CS))
+Serial.println(”Card Mount Failed”);
+return;
+uint8˙t cardType = SD.cardType();
+if(cardType == CARD˙NONE)
+//Serial.println(”No SD card attached”);
+return;
+Serial.println(”Initializing SD card...”);
+if (!SD.begin(SD˙CS))
+Serial.println(”ERROR- SD card initialization
+failed!”);
+return; // init failed
+// If the data.txt file doesn’t exist
+// Create a file on the SD card and write the data labels
+File file = SD.open(”/data.txt”);
+if(!file)
+Serial.println(”File doens’t exist”);
+Serial.println(”Creating file...”);
+writeFile(SD, ”/data.txt”,”Temperature ˚ ”);
+else
+Serial.println(”File already exists”);
+file.close();
+//// Start the DallasTemperature library
+sensors.begin();
+// Initialize Serial Monitor
+Serial.print(”Connecting to ”);
+Serial.println(ssid);
+WiFi.begin(ssid, password);
+while (WiFi.status() != WL˙CONNECTED)
+delay(500);
+Serial.print(”.”);
+// Print local IP address and start web server
+Serial.println(””);
+Serial.println(”WiFi connected.”);
+Serial.println(”IP address: ”);
+Serial.println(WiFi.localIP());
+// Initialize a NTPClient to get time timeClient.begin();
+// Set offset time in seconds to adjust for your timezone, for example:
+//GMT +5 = 18000
+timeClient.setTimeOffset(18000);
+//Serial.println(”Timer set to 10 seconds (timerDelay variable), it will take 10 seconds before publishing the first reading.”);
+// Random seed is a number used to initialize a pseudorandom number generator
+randomSeed(analogRead(33));
+/////////////////////////////////////////////////sendning data using ble /////////////////////////////////
+readFile(SD, ”/data.txt”);
+Serial.println(”Starting BLE work!”);
+BLEDevice::init(”Long name works now”);
+BLEServer *pServer = BLEDevice::createServer();
+BLEService *pService =
+pServer- createService(SERVICE˙UUID);
+BLECharacteristic *pCharacteristic =
+pService- createCharacteristic(
+CHARACTERISTIC˙UUID
+BLECharacteristic::PROPERTY˙READ —
+BLECharacteristic::PROPERTY˙WRITE
+);
+pCharacteristic- setValue(appended.c˙str());
+pService- start();
+// BLEAdvertising *pAdvertising = pServer- getAdvertising(); // this still is working for backward
+compatibility
+BLEAdvertising *pAdvertising =
+BLEDevice::getAdvertising();
+pAdvertising- addServiceUUID(SERVICE˙UUID);
+pAdvertising- setScanResponse(true);
+pAdvertising- setMinPreferred(0x06); // functions that help with iPhone connections issue
+pAdvertising- setMinPreferred(0x12);
+BLEDevice::startAdvertising();
+//Serial.println(”Characteristic defined! Now you can read it in your phone!”);
+
+void loop()
+
+getReadings();
+//it will take sensors reading and also time and date
+logSDCard() ;
+//it will take sensors reading ,time and date on sd card
+//Send an HTTP POST request every 10 seconds
+if ((millis()- lastTime)   timerDelay)
+//Check WiFi connection status
+if(WiFi.status()== WL˙CONNECTED)
+HTTPClient http;
+// Your Domain name with URL path or IP address with path
+http.begin(serverName);
+// Specify content-type header
+http.addHeader(”Content-Type”,
+”application/x-www-form-urlencoded”);
+// Data to send with HTTP POST
+String httpRequestData = ”api˙key=” + apiKey +
+”field1=” + String(temperature)+ ”field2=” + String(t);
+// Send HTTP POST request int httpResponseCode =
+http.POST(httpRequestData);
+/*
+// If you need an HTTP request with a content
+type: application/json, use the following:
+http.addHeader(”Content-Type”,
+”application/json”);
+// JSON data to send with HTTP POST
+String httpRequestData = ”¨api˙key¨ :¨ ” + apiKey + ”¨ ,¨ field1¨ :¨ ” + String(random(40)) + ”
+”;
+// Send HTTP POST request
+int httpResponseCode =
+http.POST(httpRequestData);
+*/
+Serial.print(”HTTP Response code: ”);
+Serial.println(httpResponseCode);
+// Free resources
+http.end();
+else
+Serial.println(”WiFi Disconnected”);
+lastTime = millis();
+delay(2000);
+
+// Function to get temperature
+void getReadings()
+t = dht.readTemperature();
+// Check if any reads failed and exit early (to try again).
+if ( isnan(t))
+Serial.println(F(”Failed to read from DHTsensor!”));
+return;
+sensors.requestTemperatures();
+temperature = sensors.getTempCByIndex(0); //
+Temperature in Celsius
+Serial.print(”Temperature of milk: ”);
+Serial.println(temperature);
+Serial.print(”Temperature of surrounding : ”);
+Serial.println(t);
+while(!timeClient.update())
+timeClient.forceUpdate();
+// The formattedDate comes with the following format:
+// 2018-05-28T16:00:13Z
+// We need to extract date and time
+formattedDate = timeClient.getFormattedDate();
+Serial.println(formattedDate);
+
+// Extract date
+int splitT = formattedDate.indexOf(”T”);
+dayStamp = formattedDate.substring(0, splitT);
+Serial.print(”DATE: ”);
+Serial.println(dayStamp);
+
+// Extract time
+timeStamp = formattedDate.substring(splitT+1,
+formattedDate.length()-1);
+Serial.print(”HOUR: ”);
+Serial.println(timeStamp);
+// Write the sensor readings on the SD card
+
+void logSDCard()
+dataMessage = String(temperature) + ” ” + String(t) + ” ”+ timeStamp + ” ”+ dayStamp + ”˚”;
+Serial.print(”Save data: ”);
+Serial.println(dataMessage);
+appendFile(SD, ”/data.txt”, dataMessage.c˙str());
+
+// Write to the SD card (DON’T MODIFY THIS FUNCTION)
+void writeFile(fs::FS fs, const char * path, const
+char * message)
+Serial.printf(”Writing file:
+File file = fs.open(path, FILE˙WRITE);
+if(!file)
+Serial.println(”Failed to open file for writing”);
+return;
+if(file.print(message))
+Serial.println(”File written”);
+else
+Serial.println(”Write failed”);
+file.close();
+
+// Append data to the SD card (DON’T MODIFY THIS FUNCTION)
+
+void appendFile(fs::FS fs, const char * path, const
+char * message)
+Serial.printf(”Appending to file:
+File file = fs.open(path, FILE˙APPEND);
+if(!file)
+Serial.println(”Failed to open file for 55 appending”);
+return;
+if(file.print(message))
+Serial.println(”Message appended”);
+else
+Serial.println(”Append failed”);
+file.close();
