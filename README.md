@@ -14,13 +14,13 @@ RTOS, with proven success in hardware–software integration and developing sens
 
 
 ## Highlights ()
-- **EoL Programming Tool** — small firmware + hardware demo (link to `/projects/01-embedded-blinky`).
-- **ESP32 and ThingSpeak Cloud** — driver + tests + CI for a sensor (link to folder).
+- **EoL Programming Tool** — small firmware + hardware demo.
+- **ESP32 and ThingSpeak Cloud** — driver + tests + CI for a sensor.
 
 
 ## Projects
 Browse the `projects/` folder for full details. Each project has:
-- short description
+- short description and included firmware setup
 - hardware list (if applicable)
 - how to build & run
 - tests & CI status
