@@ -1,0 +1,18 @@
+Outline for the ESP32 and Thingspeak Project.
+
+The primary focus of our Cloud Based Cold Chain for Consumer Milk Supply is to propose
+an alternate and IOT based solution for the existing outdated system of milk management
+in Pakistan. Our solution seeks to offer monitoring and managing the cold supply chain of
+milk supply through a cloud management system. This is an utmost need to ensure safe and
+unspoiled milk for the people of Pakistan. Since consumption of milk has been a necessary
+intake of millions of people of Pakistan for decades [4].
+Apart from this, the portion that milk industry has in Pakistan’s overall GDP is also sig
+nificant to note here. It is consumed in quantities of billion litres through out the year by
+the population [5]. Our project hence suggests a effective, easy to understand and manage
+cloud based cold chain system through cloud management software. This is made possible
+by monitoring some of the key parameters during the cold chain such as temperature of the
+milk container and GPS location.
+Therefore this allows the milk farms and consumers to monitor the chain of the milk supply,
+as it reaches them from the farm. It would also make sure that the cold supply chain for milk
+supply has the required temperature range. Being a key aspect for monitoring which is often
+ignored in traditional supply chains
