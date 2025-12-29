@@ -7,16 +7,15 @@ Small, focused portfolio containing selected projects and demos.
 
 
 ## About
-I am Master’s Graduate in Electrical & Microsystems Engineering with 3+ years of experience in Electrical and Automotive 
+I am a Master’s Graduate in Electrical & Microsystems Engineering with 3+ years of experience in Electrical and Automotive 
 Systems Engineering. I have experience in embedded systems, automotive electronics, and IoT development in 
-Automotive, Electronics and IOT companies. I am also proficient in C/C++, Python, STM32/ESP32, Nordic SoCs, and 
+Automotive, Electronics, and IOT companies. I am also proficient in C/C++, Python, STM32/ESP32, Nordic SoCs, and 
 RTOS, with proven success in hardware–software integration and developing sensor and power distribution solutions. 
 
 
 ## Highlights ()
-- **Embedded Blinky** — small firmware + hardware demo (link to `/projects/01-embedded-blinky`).
-- **Device driver** — driver + tests + CI for a sensor (link to folder).
-- **Portfolio site** — hosted demo and screenshots (link to `website/` or live URL).
+- **EoL Programming Tool** — small firmware + hardware demo (link to `/projects/01-embedded-blinky`).
+- **ESP32 and ThingSpeak Cloud** — driver + tests + CI for a sensor (link to folder).
 
 
 ## Projects
