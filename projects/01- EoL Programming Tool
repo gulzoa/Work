@@ -1,1 +1,151 @@
+ 1. import subprocess
+ 2. import pynrfjprog
+ 3. from pynrfjprog import HighLevel
+ 4. from pynrfjprog import LowLevel
+ 5. import usb.core
+ 6.  
+ 7. import subprocess
+ 8. import pynrfjprog
+ 9. import pylink
+10.  
+11. def get_device_family():
+12.     try:
+13.         # Run the nrfjprog command to get the device version
+14.         result = subprocess.run(['nrfjprog', '--deviceversion'], capture_output=True, text=True)
+15.         data = result.stdout.strip()
+16.         
+17.         # Check if the result was successful
+18.         if result.returncode == 0:
+19.             return data
+20.         else:
+21.             print(f"Error: {result.stderr}")
+22.             return None
+23.  
+24.     except Exception as e:
+25.         print(f"Error: {e}")
+26.         return None
+27.  
+28. # Constants for the nRF52811 FICR register addresses
+29. FICR_BASE_ADDR = 0x10000000
+30. FICR_DEVICEADDR0 = FICR_BASE_ADDR + 0xA4  # Address of DEVICEADDR0
+31. FICR_DEVICEADDR1 = FICR_BASE_ADDR + 0xA8  # Address of DEVICEADDR1
+32.  
+33. def read_mac_address():
+34.     # Initialize the J-Link connection
+35.     jlink = pylink.JLink()
+36.     
+37.     # Open the connection to the J-Link programmer
+38.     jlink.open()
+39.  
+40.     # Connect to the device using the exact device name
+41.     jlink.connect('NRF52820_xxAA')
+42.  
+43.     # Read the MAC address registers
+44.     try:
+45.         device_addr0 = jlink.memory_read32(FICR_DEVICEADDR0, 1)[0]
+46.         device_addr1 = jlink.memory_read32(FICR_DEVICEADDR1, 1)[0] 
+47.         device_addr1 |= 0xC000 
+48.     except pylink.errors.JLinkException as e:
+49.         print(f"Error reading memory: {e}")
+50.         jlink.close()
+51.         return    
+52.     # Close the J-Link connection
+53.     jlink.close()
+54.  
+55.     # Extract MAC address bytes from the read registers
+56.     mac_bytes = [
+57.         (device_addr1 >>  8) & 0xFF,
+58.         (device_addr1 >>  0) & 0xFF,
+59.         (device_addr0 >> 24) & 0xFF,
+60.         (device_addr0 >> 16) & 0xFF,
+61.         (device_addr0 >>  8) & 0xFF,
+62.         (device_addr0 >>  0) & 0xFF
+63.     ]
+64.  
+65.     # Format the MAC address
+66.     mac_address = ':'.join(f'{byte:02X}' for byte in mac_bytes)
+67.     return mac_address
+68.  
+69. if __name__ == "__main__":
+70.  
+71.          device_family = get_device_family()
+72. if device_family:
+73.          print("Device Family NAME:", device_family)
+74. try:
+75.         mac_address = read_mac_address()
+76.         print(f"MAC Address: {mac_address}")
+77. except Exception as e:
+78.         print(f"Error: {e}")
+
+
+
+
+ 1. def start_flash(self):
+ 2.        
+ 3.         pass
+ 4.  
+ 5.     def super_user(self):
+ 6.         pass
+ 7.     
+ 8.     def get_mac_address(self):
+ 9.         self.mac = simpledialog.askstring("Input", "Enter MAC Address (12 characters in Hex):").upper()
+10.         print(f"MAC Address: {self.mac}")
+11.  
+12.     def get_relative_path(self):
+13.         self.relative_path = simpledialog.askstring("Input", "Enter Relative Path:")
+14.         print(f"Relative Path: {self.relative_path}")
+15.  
+16.     def get_description(self):
+17.         self.description = simpledialog.askstring("Input", "Enter Description (optional):", initialvalue="")
+18.         print(f"Description: {self.description}")
+19.  
+20.     def get_name_prefix(self):
+21.         self.name_prefix = simpledialog.askstring("Input", "Enter Name Prefix (optional):", initialvalue="Beacon")
+22.         print(f"Name Prefix: {self.name_prefix}")
+23.  
+24.     def create_new_if_exists(self):
+25.         self.create_new = messagebox.askyesno("Input", "Create new if already exists?")
+26.         print(f"Create new if already exists: {self.create_new}")
+27.  
+28.     def testing(self):
+29.         self.qr_queue.put(["qr", 123456789012345])
+30.     
+31.     def run_program(self):
+32.         self.retrieve_credentials()
+33.  
+34.         oauth_response = self.get_oauth_access_token()
+35.         
+36.         if 'access_token' in oauth_response:
+37.             self.access_token = oauth_response['access_token']
+38.             url = '' #enter relevant url of the beacon here
+
+39.             post_headers = {'authorization': 'Bearer ' + self.access_token}
+40.  
+41.             if not self.mac or not self.relative_path:
+42.                 messagebox.showerror("Error", "MAC Address and Relative Path are required fields.")
+43.                 return
+44.  
+45.             post_data = {
+46.                 'mac': self.mac,
+47.                 'relativePath': self.relative_path,
+48.                 'description': self.description,
+49.                 'namePrefix': self.name_prefix,
+50.                 'createNewIfAlreadyExists': self.create_new
+51.             }
+52.              #     return 
+53.             response = requests.post(url, json=post_data, headers=post_headers)
+54.             print('StatusCode:', response.status_code)
+55.             print('Reason:', response.reason)
+56.             
+57.             # response = requests.post(url, json=post_data2, headers=post_headers)
+58.             # print('StatusCode:', response.status_code)
+59.             # print('Reason:', response.reason)
+60.  
+61.             if response.status_code == 200:
+62.                 print(response.json())
+63.             else:
+64.                 print("Error in response:", response.json())
+65.         else:
+66.             print("Error retrieving access token.")
+67.  
 
